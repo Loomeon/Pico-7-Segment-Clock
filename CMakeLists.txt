@@ -16,7 +16,7 @@ add_executable(Pico_7_Segment_Clock
         )
 
 # Add pico_stdlib library which aggregates commonly used features
-target_link_libraries(Pico_7_Segment_Clock pico_stdlib)
+target_link_libraries(Pico_7_Segment_Clock pico_stdlib hardware_rtc)
 
 # create map/bin/hex/uf2 file in addition to ELF.
 pico_add_extra_outputs(Pico_7_Segment_Clock)
