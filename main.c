@@ -14,6 +14,7 @@ void display(int digit, int number, int FIRST_GPIO);
 void display_time(datetime_t time);
 
 
+
 int Button = 0; //Button to set the Time (which is also used as a interrupt)
 
 
@@ -32,7 +33,6 @@ int main(void){
 
     init_RTC(t);
 
-    printf("%d", t.hour);
 
 
 
@@ -109,4 +109,32 @@ void display(int digit, int number, int FIRST_GPIO){
 
 void display_time(datetime_t time){
 
+    int digit[4]; //create an array for all the numbers
+
+
+    //Calculate the Digits with modulo
+    digit[1]= time.hour%10;
+    // If the number is smaller than 1, only 1 Digit exists, the other one will be set to 0
+    if(time.hour > 9){
+        digit[0] = (time.hour - digit[1])/10;
+    }
+    else{
+        digit[0] = 0;
+    }
+
+    //Calculate the Digits with modulo
+    digit[3]= time.min%10;
+    if(time.min > 9){
+        // If the number is smaller than 1, only 1 Digit exists, the other one will be set to 0
+        digit[2] = (time.min - digit[1])/10;
+    }
+    else{
+        digit[2] = 0;
+    }
+
+    //Go through the 4 Digits and Display them
+    for(int i; i<4; i++){
+        display(i, digit[i], 1);
+        sleep_ms(25);
+    }
 }
