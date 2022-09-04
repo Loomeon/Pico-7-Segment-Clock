@@ -9,9 +9,8 @@
 #include "hardware/gpio.h"
 
 int main(void);
-void init_RTC(datetime_t time);
 void display(int digit, int number, int FIRST_GPIO);
-void display_time(datetime_t time);
+void display_time(datetime_t *time);
 
 
 
@@ -21,7 +20,7 @@ int Button = 0; //Button to set the Time (which is also used as a interrupt)
 int main(void){
 
     // Start on Friday 5th of June 2020 15:45:00
-    datetime_t t = {
+    datetime_t time = {
             .year  = 2020,
             .month = 06,
             .day   = 05,
@@ -31,25 +30,21 @@ int main(void){
             .sec   = 00
     };
 
-    init_RTC(t);
 
-
-
-
-
-
-
-
-    return 0;
-}
-
-//Configuring RTC ----------------------------------------------------------------
-void init_RTC(datetime_t time){
+    //Configuring RTC ----------------------------------------------------------------
 
     // Start the RTC
     rtc_init();
     rtc_set_datetime(&time);
+
+    while(1){
+        display_time(&time);
+    }
+
+    return 0;
 }
+
+
 
 void display(int digit, int number, int FIRST_GPIO){
 /*
@@ -107,26 +102,27 @@ void display(int digit, int number, int FIRST_GPIO){
     gpio_put_masked(digit_mask, digit_bits[digit]); //Put the bit mask on GPIO
 }
 
-void display_time(datetime_t time){
+void display_time(datetime_t *time){
 
     int digit[4]; //create an array for all the numbers
 
+    rtc_get_datetime(time);
 
     //Calculate the Digits with modulo
-    digit[1]= time.hour%10;
+    digit[1]= time->hour%10;
     // If the number is smaller than 1, only 1 Digit exists, the other one will be set to 0
-    if(time.hour > 9){
-        digit[0] = (time.hour - digit[1])/10;
+    if(time->hour > 9){
+        digit[0] = (time->hour - digit[1])/10;
     }
     else{
         digit[0] = 0;
     }
 
     //Calculate the Digits with modulo
-    digit[3]= time.min%10;
-    if(time.min > 9){
+    digit[3]= time->min%10;
+    if(time->min > 9){
         // If the number is smaller than 1, only 1 Digit exists, the other one will be set to 0
-        digit[2] = (time.min - digit[1])/10;
+        digit[2] = (time->min - digit[1])/10;
     }
     else{
         digit[2] = 0;
