@@ -3,4 +3,4 @@
 
 # Seven Segment Display
 
-![5641AS](./Pictures/5641AS.png)
+![Schematic](./Pictures/Schematic.png)
