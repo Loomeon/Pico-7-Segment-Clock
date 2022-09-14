@@ -2,15 +2,24 @@
 // Created by Paul Weber on 04.09.22.
 //
 
+#include "pico/stdlib.h"
 #include "hardware/rtc.h"
 #include "pico/util/datetime.h"
 #include "hardware/gpio.h"
+#include "stdio.h"
 
 int main(void);
 
+void test();
+
+
 int main(void){
 
-    int FIRST_GPIO = 0; //First Pin to use for the 7 Segment Display
+    int FIRST_GPIO = 1; //First Pin to use for the 7 Segment Display
+
+    //Interrupt
+
+    gpio_set_irq_enabled_with_callback(0, GPIO_IRQ_LEVEL_HIGH, true, &test);
 
     //Structure to store the Time and Date
     datetime_t time = {
@@ -100,12 +109,12 @@ int main(void){
     //Set GPIO Mode of pins to OUTPUT -----------------------------------------
 
     // We could use gpio_set_dir_out_masked() here
-    for (int gpio = 0; gpio < 8; gpio++) {
+    for (int gpio = 0+FIRST_GPIO; gpio < 8+FIRST_GPIO; gpio++) {
         gpio_init(gpio);
         gpio_set_dir(gpio, GPIO_OUT);
     }
 
-    for (int gpio = 0; gpio < 4; gpio++) {
+    for (int gpio = 0+FIRST_GPIO; gpio < 4+FIRST_GPIO; gpio++) {
         gpio_init(gpio+8);
         gpio_set_dir(gpio+8, GPIO_OUT);
     }
@@ -120,6 +129,8 @@ int main(void){
     while(1){
         rtc_get_datetime(&time); // get time
 
+        printf("test");
+
         //Convert Hours and Minutes into single digits
         digit[0] = (time.min/10)%10;
         digit[1] = (time.min/1)%10;
@@ -131,6 +142,12 @@ int main(void){
         for(int i=0; i<4; i++){
             gpio_put_masked(number_mask, number_bits[digit[i]]); //Put the number bit mask on GPIO
             gpio_put_masked(digit_mask, digit_bits[i]); //Put the digit bit mask on GPIO
+
+            sleep_ms(1);
         }
     }
+}
+
+void test(){
+    busy_wait_ms(1000);
 }
