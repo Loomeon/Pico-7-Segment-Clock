@@ -19,7 +19,7 @@ pico_enable_stdio_usb(Pico_7_Segment_Clock 1)
 pico_enable_stdio_uart(Pico_7_Segment_Clock 0)
 
 # Add pico_stdlib library which aggregates commonly used features
-target_link_libraries(Pico_7_Segment_Clock pico_stdlib hardware_rtc)
+target_link_libraries(Pico_7_Segment_Clock pico_stdlib hardware_rtc pico_multicore)
 
 # create map/bin/hex/uf2 file in addition to ELF.
 pico_add_extra_outputs(Pico_7_Segment_Clock)
