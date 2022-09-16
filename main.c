@@ -2,11 +2,9 @@
 // Created by Paul Weber on 04.09.22.
 //
 
-#include "pico/stdlib.h"
 #include "hardware/rtc.h"
 #include "pico/util/datetime.h"
 #include "hardware/gpio.h"
-#include "stdio.h"
 #include "pico/multicore.h"
 
 
@@ -43,19 +41,23 @@ void button_minute();
 void display_time();
 
 int main(void){
-    multicore_launch_core1(display_time);
+    int button_press = 0; //Variable to store the Time the Button was pressed
+    multicore_launch_core1(display_time); //launch the function to display time on core 1
 
     while(1){
-        int button_press = 0;
-
         while(gpio_get(0)!=0){
-            sleep_ms(1);
-            button_press++;
 
+            //count up once 1 each 1 ms
+            button_press++;
+            sleep_ms(1);
+
+            //when counted to 1000 ms
             if(button_press > 1000){
-             set_time();
+                set_time(); //when button is pressed for 1000 ms go into set time mode
             }
         }
+        button_press = 0; //reset counter of the time the button was pressed
+
     }
 }
 
@@ -124,10 +126,10 @@ void setup(bits *bits){
 
     //The Digits use +8 Because the Number Pins come before them
     for(int i=0; i<4; i++){
-        bits->digit[i] = bits->digit[i] << bits->FIRST_GPIO+8;
+        bits->digit[i] = bits->digit[i] << (bits->FIRST_GPIO+8);
     }
 
-    bits->digit_mask = bits->digit_mask << bits->FIRST_GPIO+8;
+    bits->digit_mask = bits->digit_mask << (bits->FIRST_GPIO+8);
 
     //Set GPIO Mode of pins to OUTPUT -----------------------------------------
 
@@ -153,99 +155,82 @@ void set_time(){
     bits bits;
     setup(&bits);
 
-    sleep_ms(10);
-
     //Interrupt
-    gpio_set_irq_enabled_with_callback(0, GPIO_IRQ_EDGE_FALL, true, &button_hour); // Enable IRQ on GPIO 0 on a rising edge, then open the function test
+    // Enable IRQ on FIRST_GPIO -1 (GPIO 0) on falling edge, when activated open the button_hour function
+    gpio_set_irq_enabled_with_callback(bits.FIRST_GPIO-1, GPIO_IRQ_EDGE_FALL, true, &button_hour);
 
+    int block = 0; //Block 0 is Hours or Digit 0 and 1, Block 1 is Minutes or Digit 2 and 3
+    int button_press = 0; //Variable to store the Time the Button was pressed
 
-
-
-
-    int block = 0;
-    int press = 0;
-
-    int button_press = 0;
-
-    gpio_deinit(11);
-    gpio_deinit(12);
+    //Disable Minute Display, so only Hours will be shown
+    gpio_deinit(bits.FIRST_GPIO+10);
+    gpio_deinit(bits.FIRST_GPIO+11);
 
     while(block<2){
-
-
-
-        rtc_get_datetime(&time);
-
-        //Convert Hours and Minutes into single digits
-        bits.time_digit[0] = (time.hour/10)%10;
-        bits.time_digit[1] = (time.hour/1)%10;
-
-        bits.time_digit[2] = (time.min/10)%10;
-        bits.time_digit[3] = (time.min/1)%10;
-
-
-
-
         if(block==0){
+            //Check if the Button is pressed, if it is pressed under 1000 ms IRQ will be executed
+            while(gpio_get(0)!=0){
 
-
-
-
-            while(gpio_get(0)!=0 && block==0){
-                sleep_ms(1);
+                //count up once 1 each 1 ms
                 button_press++;
+                sleep_ms(1);
 
+                //when counted to 1000 ms
                 if(button_press > 1000){
-                    block = 1;
-                    gpio_set_irq_enabled_with_callback(0, GPIO_IRQ_EDGE_FALL, true, &button_minute); // Enable IRQ on GPIO 0 on a rising edge, then open the function test
+                    block++; //go to minute block
 
-                    gpio_init(11);
-                    gpio_init(12);
+                    // Enable IRQ on FIRST_GPIO -1 (GPIO 0) on falling edge, when activated open the button_minute function
+                    gpio_set_irq_enabled_with_callback(0, GPIO_IRQ_EDGE_FALL, true, &button_minute);
 
-                    gpio_deinit(9);
-                    gpio_deinit(10);
 
-                    gpio_set_dir(11, GPIO_OUT);
-                    gpio_set_dir(12, GPIO_OUT);
+                    //Set the GPIO of the Minute Display back to normal
+                    gpio_init(bits.FIRST_GPIO+10);
+                    gpio_init(bits.FIRST_GPIO+11);
+                    gpio_set_dir(bits.FIRST_GPIO+10, GPIO_OUT);
+                    gpio_set_dir(bits.FIRST_GPIO+11, GPIO_OUT);
 
+                    //Disable Hour Display
+                    gpio_deinit(bits.FIRST_GPIO+8);
+                    gpio_deinit(bits.FIRST_GPIO+9);
+
+                    //wait to prevent button press in the next block
+                    sleep_ms(1000);
                 }
 
             }
-            button_press = 0;
+            button_press = 0; //reset counter of the time the button was pressed
         }
 
         else if(block == 1){
 
+            while(gpio_get(0)!=0 && block == 1){
 
-
-
-            while(gpio_get(0)!=0 && block==1){
-                sleep_ms(1);
+                //count up once 1 each 1 ms
                 button_press++;
+                sleep_ms(1);
 
+                //when counted to 1000 ms
                 if(button_press > 1000){
-                    block = 2;
-                    gpio_set_irq_enabled_with_callback(0, GPIO_IRQ_EDGE_FALL, false, &button_minute); // Enable IRQ on GPIO 0 on a rising edge, then open the function test
-
+                    block++; //go to minute block, this will just leave this loop. because this is the last block
                 }
-
-
             }
-            button_press = 0;
-
+            button_press = 0; //reset counter of the time the button was pressed
         }
     }
 
-    gpio_init(9);
-    gpio_init(10);
+    //Disable IRQ
+    gpio_set_irq_enabled_with_callback(0, GPIO_IRQ_EDGE_FALL, false, &button_minute);
 
-    gpio_set_dir(9, GPIO_OUT);
-    gpio_set_dir(10, GPIO_OUT);
+    //Set the GPIO of the Hour Display back to normal
+    gpio_init(bits.FIRST_GPIO+8);
+    gpio_init(bits.FIRST_GPIO+9);
+    gpio_set_dir(bits.FIRST_GPIO+8, GPIO_OUT);
+    gpio_set_dir(bits.FIRST_GPIO+9, GPIO_OUT);
 
-    sleep_ms(1000);
+    time.sec=0; //Set the Seconds to 0
+    rtc_set_datetime(&time); //set RTC to the changed time
 
-    multicore_reset_core1();
-    multicore_launch_core1(display_time);
+    sleep_ms(5000); //wait to prevent reentering the set time mode for 5 seconds
 }
 
 
@@ -263,20 +248,19 @@ void display_time(){
         bits.time_digit[2] = (time.min/10)%10;
         bits.time_digit[3] = (time.min/1)%10;
 
-
-
         //Go through the 4 Digits and Display them
         for(int i=0; i<4; i++){
             gpio_put_masked(bits.number_mask, bits.number[bits.time_digit[i]]); //Put the number bit mask on GPIO
             gpio_put_masked(bits.digit_mask, bits.digit[i]); //Put the digit bit mask on GPIO
 
-            busy_wait_ms(1);
+            sleep_ms(1);
         }
-
     }
 }
 
 void button_hour(){
+
+    //count up 1 on button press, when hour is 23 and button is pressed, reset to 0
     if(time.hour<23){
         time.hour++;
     }
@@ -284,11 +268,12 @@ void button_hour(){
         time.hour=0;
     }
 
-    rtc_set_datetime(&time);
-    busy_wait_ms(100);
+    rtc_set_datetime(&time); //set RTC to the changed time
 }
 
 void button_minute(){
+
+    //count up 1 on button press, when minute is 59 and button is pressed, reset to 0
     if(time.min<59){
         time.min++;
     }
@@ -296,6 +281,5 @@ void button_minute(){
         time.min=0;
     }
 
-    rtc_set_datetime(&time);
-    busy_wait_ms(100);
+    rtc_set_datetime(&time); //set RTC to the changed time
 }
