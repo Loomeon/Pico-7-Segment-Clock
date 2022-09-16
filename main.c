@@ -30,8 +30,6 @@ datetime_t time = {
         .sec   = 00
 };
 
-int display = 1;
-
 int main(void);
 
 void setup(bits *bits);
@@ -45,9 +43,6 @@ void button_minute();
 void display_time();
 
 int main(void){
-
-
-
     multicore_launch_core1(display_time);
 
     while(1){
@@ -166,13 +161,14 @@ void set_time(){
 
 
 
-    display=0;
 
     int block = 0;
     int press = 0;
 
     int button_press = 0;
 
+    gpio_deinit(11);
+    gpio_deinit(12);
 
     while(block<2){
 
@@ -188,16 +184,14 @@ void set_time(){
         bits.time_digit[3] = (time.min/1)%10;
 
 
+
+
         if(block==0){
-            //Display Minutes normally
-            for(int i=0; i<2; i++){
-                gpio_put_masked(bits.number_mask, bits.number[bits.time_digit[i]]); //Put the number bit mask on GPIO
-                gpio_put_masked(bits.digit_mask, bits.digit[i]); //Put the digit bit mask on GPIO
 
-                busy_wait_ms(1);
-            }
 
-            while(gpio_get(0)!=0){
+
+
+            while(gpio_get(0)!=0 && block==0){
                 sleep_ms(1);
                 button_press++;
 
@@ -205,19 +199,27 @@ void set_time(){
                     block = 1;
                     gpio_set_irq_enabled_with_callback(0, GPIO_IRQ_EDGE_FALL, true, &button_minute); // Enable IRQ on GPIO 0 on a rising edge, then open the function test
 
+                    gpio_init(11);
+                    gpio_init(12);
+
+                    gpio_deinit(9);
+                    gpio_deinit(10);
+
+                    gpio_set_dir(11, GPIO_OUT);
+                    gpio_set_dir(12, GPIO_OUT);
+
                 }
+
             }
             button_press = 0;
         }
 
         else if(block == 1){
-            for(int i=2; i<4; i++){
-                gpio_put_masked(bits.number_mask, bits.number[bits.time_digit[i]]); //Put the number bit mask on GPIO
-                gpio_put_masked(bits.digit_mask, bits.digit[i]); //Put the digit bit mask on GPIO
 
-                busy_wait_ms(1);
-            }
-            while(gpio_get(0)!=0){
+
+
+
+            while(gpio_get(0)!=0 && block==1){
                 sleep_ms(1);
                 button_press++;
 
@@ -226,12 +228,22 @@ void set_time(){
                     gpio_set_irq_enabled_with_callback(0, GPIO_IRQ_EDGE_FALL, false, &button_minute); // Enable IRQ on GPIO 0 on a rising edge, then open the function test
 
                 }
+
+
             }
             button_press = 0;
+
         }
     }
 
-    display=1;
+    gpio_init(9);
+    gpio_init(10);
+
+    gpio_set_dir(9, GPIO_OUT);
+    gpio_set_dir(10, GPIO_OUT);
+
+    sleep_ms(1000);
+
     multicore_reset_core1();
     multicore_launch_core1(display_time);
 }
@@ -241,15 +253,15 @@ void display_time(){
     bits bits;
     setup(&bits);
 
-    while(display == 1){
+    while(1){
         rtc_get_datetime(&time); // get time
 
         //Convert Hours and Minutes into single digits
-        bits.time_digit[0] = (time.min/10)%10;
-        bits.time_digit[1] = (time.min/1)%10;
+        bits.time_digit[0] = (time.hour/10)%10;
+        bits.time_digit[1] = (time.hour/1)%10;
 
-        bits.time_digit[2] = (time.sec/10)%10;
-        bits.time_digit[3] = (time.sec/1)%10;
+        bits.time_digit[2] = (time.min/10)%10;
+        bits.time_digit[3] = (time.min/1)%10;
 
 
 
@@ -265,10 +277,10 @@ void display_time(){
 }
 
 void button_hour(){
-    if(time.hour<24){
+    if(time.hour<23){
         time.hour++;
     }
-    else{
+    else if(time.hour == 23){
         time.hour=0;
     }
 
@@ -277,10 +289,10 @@ void button_hour(){
 }
 
 void button_minute(){
-    if(time.min<60){
+    if(time.min<59){
         time.min++;
     }
-    else{
+    else if(time.min == 59){
         time.min=0;
     }
 
