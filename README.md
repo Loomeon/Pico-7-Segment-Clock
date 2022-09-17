@@ -1,18 +1,11 @@
 # 7 Segement Clock with the Pi Pico
 
-
 This project is using a 4 Digit 7 Segment display and a Raspberry Pi pico to create a clock.
 
 ![Finished Project](./Pictures/IMG_3932.jpeg)
 
-# Partlist
-
-|           Part            |
-|:-------------------------:|
-|     Raspberry Pi Pico     |
-| 4 Digit 7 Segment Display |
-|      Generic Button       |
-|        Breadboard         |
+# Compiling
+To compile this Project you need to configure the Pico SDK, documentation on how to do that can be found [here](https://github.com/raspberrypi/pico-sdk).
 
 # Datasheets
 
