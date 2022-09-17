@@ -9,24 +9,26 @@
 
 
 typedef struct{
-    int FIRST_GPIO;
-    int number[10];
-    int digit[4];
-    int digit_mask;
-    int number_mask;
+    int FIRST_GPIO; //stores the FIRST GPIO of the 7 Segment Display
+    int number[10]; //Array to store number bitmasks
+    int digit[4]; //Array to store digit bitmasks
+    int number_mask; //Variable to store Pins that will be changed
+    int digit_mask; //Variable to store Pins that will be changed
     int time_digit[4]; //create an array for all the numbers
 } bits;
 
 //Structure to store the Time and Date
 datetime_t time = {
-        .year  = 2020,
-        .month = 06,
-        .day   = 05,
-        .dotw  = 5, // 0 is Sunday, so 5 is Friday
-        .hour  = 15,
-        .min   = 37,
+        .year  = 2022,
+        .month = 9,
+        .day   = 17,
+        .dotw  = 6,
+        .hour  = 00,
+        .min   = 00,
         .sec   = 00
 };
+
+static absolute_time_t last_interrupt;
 
 int main(void);
 
@@ -43,6 +45,7 @@ void display_time();
 int main(void){
     int button_press = 0; //Variable to store the Time the Button was pressed
     multicore_launch_core1(display_time); //launch the function to display time on core 1
+    last_interrupt = get_absolute_time(); //get current time
 
     while(1){
         while(gpio_get(0)!=0){
@@ -260,26 +263,33 @@ void display_time(){
 
 void button_hour(){
 
-    //count up 1 on button press, when hour is 23 and button is pressed, reset to 0
-    if(time.hour<23){
-        time.hour++;
-    }
-    else if(time.hour == 23){
-        time.hour=0;
-    }
+    //When entering IRQ compare time since last interrupt to current time, when difference is smaller than 150 ms do nothing
+    if(absolute_time_diff_us(last_interrupt, get_absolute_time()) > 150000) {
+        //count up 1 on button press, when hour is 23 and button is pressed, reset to 0
+        if (time.hour < 23) {
+            time.hour++;
+        } else if (time.hour == 23) {
+            time.hour = 0;
+        }
 
-    rtc_set_datetime(&time); //set RTC to the changed time
+        last_interrupt = get_absolute_time(); //set variable to current time
+        rtc_set_datetime(&time); //set RTC to the changed time
+    }
 }
 
 void button_minute(){
 
-    //count up 1 on button press, when minute is 59 and button is pressed, reset to 0
-    if(time.min<59){
-        time.min++;
-    }
-    else if(time.min == 59){
-        time.min=0;
-    }
+    //When entering IRQ compare time since last interrupt to current time, when difference is smaller than 150 ms do nothing
+    if(absolute_time_diff_us(last_interrupt, get_absolute_time()) > 150000){
+        //count up 1 on button press, when minute is 59 and button is pressed, reset to 0
+        if(time.min<59){
+            time.min++;
+        }
+        else if(time.min == 59){
+            time.min=0;
+        }
 
-    rtc_set_datetime(&time); //set RTC to the changed time
+        last_interrupt = get_absolute_time(); //set variable to current time
+        rtc_set_datetime(&time); //set RTC to the changed time
+    }
 }
