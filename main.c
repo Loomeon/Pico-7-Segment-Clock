@@ -23,7 +23,7 @@ datetime_t time = {
         .month = 9,
         .day   = 17,
         .dotw  = 6,
-        .hour  = 00,
+        .hour  = 12,
         .min   = 00,
         .sec   = 00
 };
@@ -60,7 +60,6 @@ int main(void){
             }
         }
         button_press = 0; //reset counter of the time the button was pressed
-
     }
 }
 
@@ -282,12 +281,14 @@ void button_minute(){
     //When entering IRQ compare time since last interrupt to current time, when difference is smaller than 150 ms do nothing
     if(absolute_time_diff_us(last_interrupt, get_absolute_time()) > 150000){
         //count up 1 on button press, when minute is 59 and button is pressed, reset to 0
-        if(time.min<59){
+        if(time.min < 59){
             time.min++;
         }
         else if(time.min == 59){
-            time.min=0;
+            time.min = 0;
         }
+
+        time.sec = 0; //set seconds to zero to prevent minutes to change while changing
 
         last_interrupt = get_absolute_time(); //set variable to current time
         rtc_set_datetime(&time); //set RTC to the changed time
