@@ -10,7 +10,8 @@ To compile this Project you need to configure the Pico SDK, documentation on how
 # Datasheets
 
 The 7 Segment Display I used to build this project and in Fritzing are not the same, I would advise you to use the Datasheet of your
-7 Segment Display with the GPIO Layout.
+7 Segment Display with the GPIO Layout. Another thing to keep in mind is, that i labeled the first Digit as Digit 0 instead of 1 like the
+Datasheet did.
 
 ## GPIO Layout
 |      GPIO       | Corresponding Function |
